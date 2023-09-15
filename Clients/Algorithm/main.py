@@ -4,6 +4,7 @@ from src.game import Game
 flag = False
 
 LIMIT_OF_NODE = 7
+ALL_MY_TROOPS_COUNT = 35
 
 
 class Graph:
@@ -35,6 +36,9 @@ class Graph:
 
 
 class GameInfo:
+    STRATEGICAL_NODE = 1
+    SIMPLE_NODE = 2
+
     def __init__(self, game: Game):
         self.game = game
 
@@ -44,14 +48,18 @@ class GameInfo:
 
         self.all_nodes = game.get_owners()
         self.free_nodes = [node for node, owner in self.all_nodes.items if owner == -1]
+        self.enemy_nodes = [node for node, owner in self.all_nodes.items if owner != self.my_id and owner != -1]
 
         self.strategical_nodes = game.get_strategic_nodes()['strategic_nodes']
-        self.enemy_stra
         self.strategical_nodes_score = game.get_strategic_nodes()['score']
         self.strategical_nodes_by_score = list(zip(self.strategical_nodes, self.strategical_nodes_score))
         self.strategical_nodes_by_score_sorted = [node for node, score in
                                                   sorted(self.strategical_nodes_by_score, key=lambda x: x[1],
                                                          reverse=True)]
+        self.enemy_strategical_nodes = [node for node, owner in self.all_nodes.items if
+                                        owner != self.my_id and owner != -1 and node in self.strategical_nodes]
+        self.enemy_strategical_nodes_by_score_sorted = [node for node, owner in self.all_nodes.items if
+                                                        owner != self.my_id and owner != -1 and node in self.strategical_nodes and node in self.strategical_nodes_by_score_sorted]
 
         self.free_strategical_nodes = [node for node in self.all_nodes.keys() if node == -1]
         self.free_strategical_nodes_by_score = list(zip(self.free_strategical_nodes, self.strategical_nodes_score))
@@ -59,10 +67,15 @@ class GameInfo:
                                                        sorted(self.free_strategical_nodes_by_score, key=lambda x: x[1],
                                                               reverse=True)]
         self.my_strategical_nodes = [node for node in self.all_nodes.keys() if node == self.my_id]
+        self.my_simple_nodes = [node for node, owner in self.all_nodes.items if owner == self.my_id and node not in
+                                self.strategical_nodes]
 
         self.my_nodes = [node for node, owner in self.all_nodes.items if owner == self.my_id]
 
         self.nodes_troops = game.get_number_of_troops()
+
+    def can_put_troops_limitation(self, troops_count, node_type):
+        return troops_count < (ALL_MY_TROOPS_COUNT // len(self.my_nodes))
 
 
 def initializer(game: Game):
@@ -157,7 +170,7 @@ def initializer(game: Game):
             # 6 select nearest node to strategical node
             free_node_to_strategical_node_path = dict()
             for free_node in game_info.free_nodes:
-                for strategical_node in game_info.strategical_nodes_by_score_sorted:
+                for strategical_node in game_info.enemy_strategical_nodes_by_score_sorted:
                     shortest_path = game_graph.get_shortest_path(free_node, strategical_node)
                     if shortest_path:
                         if free_node in free_node_to_strategical_node_path.keys():
@@ -170,15 +183,61 @@ def initializer(game: Game):
                                                                             reverse=False)]
             game.put_one_troop(sort_free_node_to_strategical_node_path[0])
 
-    # endangered strategical node
-    my_strategical_node = [node for node, owner in game_info.all_nodes.items if
-                           node in game_info.strategical_nodes and owner == game_info.my_id]
+    # endangered my strategical node
+    my_strategical_node_threat = dict()
+    for strategical_node in game_info.my_strategical_nodes:
+        neighbors = game_info.adj[strategical_node]
+        for neighbor in neighbors:
+            if neighbor not in game_info.my_nodes:
+                enemy_nodes_troops = game_info.nodes_troops[neighbor]
+                if strategical_node in my_strategical_node_threat.keys():
+                    if enemy_nodes_troops > my_strategical_node_threat[strategical_node]:
+                        my_strategical_node_threat[strategical_node] = enemy_nodes_troops
+                else:
+                    my_strategical_node_threat[strategical_node] = enemy_nodes_troops
+    sort_my_strategical_node_threat = [x[0] for x in sorted(my_strategical_node_threat.items(),
+                                                            key=lambda x: x[1],
+                                                            reverse=True)]
+    # check less than limitation of troops in my strategical node
+    for node in sort_my_strategical_node_threat:
+        if game_info.can_put_troops_limitation(game_info.nodes_troops[node], game_info.STRATEGICAL_NODE):
+            game.put_one_troop(node)
+            break
 
-    for node in my_strategical_node:
-        # node_troops
-        # node_neighbors = game_info.adj[node]
-        # enemy_neighbors = [neighbor for neighbor in node_neighbors if game_info.all_nodes[neighbor] != game_info.my_id]
-        pass
+    my_node_neighbors_to_my_strategical_node = list()
+    for strategical_node in game_info.my_strategical_nodes:
+        neighbors = game_info.adj(strategical_node)
+        for neighbor in neighbors:
+            if neighbor in game_info.my_nodes:
+                my_node_neighbors_to_my_strategical_node.append(neighbor)
+
+    my_node_neighbors_to_my_strategical_node_threat = dict()
+    for node in my_node_neighbors_to_my_strategical_node:
+        neighbors = game_info.adj(node)
+        for neighbor in neighbors:
+            if neighbor not in game_info.my_nodes:
+                enemy_nodes_troops = game_info.nodes_troops[neighbor]
+                if node in my_node_neighbors_to_my_strategical_node_threat.keys():
+                    if enemy_nodes_troops > my_node_neighbors_to_my_strategical_node_threat[node]:
+                        my_node_neighbors_to_my_strategical_node_threat[node] = enemy_nodes_troops
+                else:
+                    my_node_neighbors_to_my_strategical_node_threat[node] = enemy_nodes_troops
+
+    sort_my_node_neighbors_to_my_strategical_node_threat = [x[0] for x in sorted(
+        my_node_neighbors_to_my_strategical_node_threat.items(),
+        key=lambda x: x[1],
+        reverse=True)]
+
+    for node in sort_my_node_neighbors_to_my_strategical_node_threat:
+        if game_info.can_put_troops_limitation(game_info.nodes_troops[node], game_info.SIMPLE_NODE):
+            game.put_one_troop(node)
+            break
+
+    # for node in game_info:
+    # node_troops
+    # node_neighbors = game_info.adj[node]
+    # enemy_neighbors = [neighbor for neighbor in node_neighbors if game_info.all_nodes[neighbor] != game_info.my_id]
+    # pass
 
     # strategic_nodes = list(zip(strategic_nodes, score))
     # strategic_nodes.sort(key=lambda x: x[1], reverse=True)
