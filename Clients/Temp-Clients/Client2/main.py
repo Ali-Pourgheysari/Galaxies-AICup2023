@@ -35,7 +35,7 @@ class Graph:
 
 
 class GameInfo:
-    def __init__(self, game: Game):
+    def __int__(self, game: Game):
         self.game = game
 
         self.adj = game.get_adj()
@@ -46,7 +46,6 @@ class GameInfo:
         self.free_nodes = [node for node, owner in self.all_nodes.items if owner == -1]
 
         self.strategical_nodes = game.get_strategic_nodes()['strategic_nodes']
-        self.enemy_stra
         self.strategical_nodes_score = game.get_strategic_nodes()['score']
         self.strategical_nodes_by_score = list(zip(self.strategical_nodes, self.strategical_nodes_score))
         self.strategical_nodes_by_score_sorted = [node for node, score in
@@ -139,7 +138,7 @@ def initializer(game: Game):
                 neighbors = game_info.adj[free_node]
                 strategical_neighbors = [neighbor for neighbor in neighbors if
                                          neighbor in game_info.free_strategical_nodes_by_score_sorted]
-                if len(strategical_neighbors) >= 1:
+                if len(strategical_neighbors) > 1:
                     node_to_strategical_node[free_node] = len(strategical_neighbors)
             if node_to_strategical_node:
                 if max(node_to_strategical_node.values()) > 1:
