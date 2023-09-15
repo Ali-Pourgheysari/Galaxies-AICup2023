@@ -4,15 +4,46 @@ import time
 
 flag = False
 
-LIMIT_OF_NODE = 6
+LIMIT_OF_NODE = 7
+
+
+class Graph:
+    # get list of edge with node id like this and initialize graph : [[1,2],[2,3],[3,4]]
+    def __init__(self, edges):
+        self.edges = edges
+        self.graph_dict = {}
+        for start, end in self.edges:
+            if start in self.graph_dict.keys():
+                self.graph_dict[start].append(end)
+            else:
+                self.graph_dict[start] = [end]
+
+    def get_shortest_path(self, start, end, path=[]):
+        path = path + [start]
+        if start == end:
+            return path
+        if start not in self.graph_dict.keys():
+            return None
+        shortest_path = None
+        for node in self.graph_dict[start]:
+            if node not in path:
+                new_path = self.get_shortest_path(node, end, path)
+                if new_path:
+                    if shortest_path is None or len(new_path) < len(shortest_path):
+                        shortest_path = new_path
+
+        return shortest_path
 
 
 def initializer(game: Game):
-    # get my id
-    my_id = game.get_player_id()['player_id']
-
     # all nodes with neighbors
     adj = game.get_adj()
+
+    # initialize graph
+    game_graph = Graph(adj)
+
+    # get my id
+    my_id = game.get_player_id()['player_id']
 
     # get strategic nodes and scores
     strategic_nodes = game.get_strategic_nodes()['strategic_nodes']
@@ -33,13 +64,16 @@ def initializer(game: Game):
     # get free strategical node
     free_strategical_node = [node for node in free_node if node in strategic_nodes]
 
+    # get my strategical node
+    my_strategical_nodes = [node for node in my_nodes if node in strategic_nodes]
+
     ## place troop if game have free strategical node
     if free_strategical_node:
         free_strategical_node.sort(key=lambda x: x[1], reverse=True)
         game.put_one_troop(free_strategical_node[0])
 
     ##
-    if len(my_nodes) < LIMIT_OF_NODE:
+    if len(my_nodes) < LIMIT_OF_NODE and len(free_node):
         my_neighbors_of_my_node = dict()
         for node in my_nodes:
 
@@ -56,10 +90,25 @@ def initializer(game: Game):
                                         sorted(my_neighbors_of_my_node.items(), key=lambda x: x[1], reverse=True)]
 
         if len(sort_my_neighbors_of_my_node) > 1:
-            pass
-        # todo check if we can move all owned node
+            node_to_nearest_strategical_node = dict()
+            for node in sort_my_neighbors_of_my_node:
+                for my_strategical_node in my_strategical_nodes:
+                    shortest_path = game_graph.get_shortest_path(node, my_strategical_node)
+                    if shortest_path:
+                        if node in node_to_nearest_strategical_node.keys():
+                            if len(shortest_path) < node_to_nearest_strategical_node[node]:
+                                node_to_nearest_strategical_node[node] = len(shortest_path)
+                        else:
+                            node_to_nearest_strategical_node[node] = len(shortest_path)
+            sort_node_to_nearest_strategical_node = [x[0] for x in
+                                                     sorted(node_to_nearest_strategical_node.items(),
+                                                            key=lambda x: x[1],
+                                                            reverse=True)]
+            game.put_one_troop(sort_node_to_nearest_strategical_node[0])
+
         elif len(sort_my_neighbors_of_my_node) == 1:
             game.put_one_troop(sort_my_neighbors_of_my_node[0])
+
         elif len(sort_my_neighbors_of_my_node) == 0:
             pass
             # strategical node
@@ -68,12 +117,9 @@ def initializer(game: Game):
             # 3 node connected to multiple strategical node
             # 4 node connected to one strategical node
             # 5 node connect to strategical node
-                # 5.1 sort by troop
-                # 5.2  sort by strategical node score
+            # 5.1 sort by troop
+            # 5.2  sort by strategical node score
             # 6 select nearest node to strategical node
-        
-
-
 
     # endangered strategical node
     my_strategical_node = [node for node, owner in all_node.items if node in strategic_nodes and owner == my_id]
