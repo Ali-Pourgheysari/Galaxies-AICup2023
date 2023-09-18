@@ -15,12 +15,14 @@ def initializer(game: Game):
     for i in strategic_nodes:
         if owner[str(i)] == -1:
             print(game.put_one_troop(i), "-- putting one troop on", i)
+            game.next_state()
             return
     adj = game.get_adj()
     for i in strategic_nodes:
         for j in adj[str(i)]:
             if owner[str(j)] == -1:
                 print(game.put_one_troop(j), "-- putting one troop on neighbor of strategic node", j)
+                game.next_state()
                 return
     my_id = game.get_player_id()['player_id']
     nodes = []
@@ -32,6 +34,7 @@ def initializer(game: Game):
     nodes = list(set(nodes))
     node = random.choice(nodes)
     game.put_one_troop(node)
+    game.next_state()
     print("3-  putting one troop on", node)
 
 
