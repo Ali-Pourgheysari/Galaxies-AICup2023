@@ -3,7 +3,7 @@ from src.game import Game
 
 flag = False
 
-LIMIT_OF_NODE = 8
+LIMIT_OF_NODE = 7
 ALL_MY_TROOPS_COUNT = 35
 
 
@@ -61,6 +61,7 @@ class GameInfo:
     def put_one_troop(self, node, message="Troop"):
         print("put troops get: ", node)
         print("put troops : ", self.game.put_one_troop(node), message)
+        self.game.next_state()
 
     def __str__(self):
         print("my id: ", self.my_id)
@@ -101,7 +102,7 @@ def initializer(game: Game):
         return
 
     print('11')
-    if len(game_info.my_nodes) < LIMIT_OF_NODE and len(game_info.free_nodes):
+    if len(game_info.my_nodes) <= LIMIT_OF_NODE and len(game_info.free_nodes):
         my_strategical_node_my_neighbors_count = dict()
         for strategical_node in game_info.my_strategical_nodes:
             my_strategical_node_my_neighbors_count[strategical_node] = 0
@@ -233,23 +234,26 @@ def initializer(game: Game):
     my_strategical_node_threat = dict()
     for strategical_node in game_info.my_strategical_nodes:
         neighbors = game_info.adj[strategical_node]
+        strategical_node_troop = game_info.nodes_troops[strategical_node]
         for neighbor in neighbors:
             if neighbor not in game_info.my_nodes:
                 enemy_nodes_troops = game_info.nodes_troops[neighbor]
+                threat = enemy_nodes_troops - strategical_node_troop
                 if strategical_node in my_strategical_node_threat.keys():
-                    if enemy_nodes_troops > my_strategical_node_threat[strategical_node]:
-                        my_strategical_node_threat[strategical_node] = enemy_nodes_troops
+                    if threat > my_strategical_node_threat[strategical_node]:
+                        my_strategical_node_threat[strategical_node] = threat
                 else:
-                    my_strategical_node_threat[strategical_node] = enemy_nodes_troops
+                    my_strategical_node_threat[strategical_node] = threat
     sort_my_strategical_node_threat = [x[0] for x in sorted(my_strategical_node_threat.items(),
                                                             key=lambda x: x[1],
-                                                            reverse=True)]
+                                                             reverse=True)]
     print('3')
     # check less than limitation of troops in my strategical node
     for node in sort_my_strategical_node_threat:
-        if game_info.can_put_troops_limitation(game_info.nodes_troops[node], game_info.STRATEGICAL_NODE):
-            game_info.put_one_troop(node, "8")
-            return
+        if game_info.nodes_troops[node] <= my_strategical_node_threat[node]:
+            if game_info.can_put_troops_limitation(game_info.nodes_troops[node], game_info.STRATEGICAL_NODE):
+                game_info.put_one_troop(node, "8")
+                return
 
     print('4')
     my_node_neighbors_to_my_strategical_node = list()
