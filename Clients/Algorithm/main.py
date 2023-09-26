@@ -125,6 +125,10 @@ def reinforce(game_info: GameInfo):
     if game_info.free_strategical_nodes:
         return game_info.free_strategical_nodes_by_score_sorted[0]
     print('2')
+
+    node = add_troop(game_info)
+    if node:
+        return node
     # endangered my strategical node
     my_strategical_node_threat = dict()
     for strategical_node in game_info.my_strategical_nodes:
@@ -205,8 +209,9 @@ def reinforce(game_info: GameInfo):
                                                                     reverse=False)]
         for node in sort_my_node_attack_to_enemy_troops:
             if game_info.can_put_troops_limitation(game_info.nodes_troops[node], game_info.SIMPLE_NODE):
-                game_info.printer_string("r3")
-                return node
+                if game_info.nodes_troops[node] <= my_node_attack_to_enemy_troops[node]:
+                    game_info.printer_string("r3")
+                    return node
     print('9')
     # reinforce without limitation
     all_my_nodes_threat = dict()
@@ -284,6 +289,7 @@ def add_troop(game_info:GameInfo):
         for neighbor in neighbors:
             if neighbor in game_info.free_nodes:
                 return neighbor
+    return
 def initial(game_info: GameInfo):
     print('00')
     ## place troop if game have free strategical node
