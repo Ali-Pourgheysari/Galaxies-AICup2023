@@ -252,12 +252,10 @@ def reinforce(game_info: GameInfo):
         if all_my_nodes_threat[node] >= 0:
             game_info.printer_string("r4")
             return node
-    print('sss4')
-    random_node = [node for node in game_info.strategical_nodes_by_score_sorted if node in game_info.my_nodes]
-    print('sss5')
-    print("random_node", random_node)
-    game_info.printer_string("r5")
-    return random_node[0]
+
+    my_node_by_troops = [node[0] for node in sorted([(node, troop) for node, troop in game_info.nodes_troops if node in game_info.my_nodes],
+                               key=lambda x: x[1], reverse=False)]
+    return my_node_by_troops[0]
 
 
 def add_troop(game_info: GameInfo):
