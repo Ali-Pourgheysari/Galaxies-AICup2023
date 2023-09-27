@@ -248,10 +248,12 @@ def reinforce(game_info: GameInfo):
 
 
 def add_troop(game_info: GameInfo):
+    print('add 1')
     ## place troop if game have free strategical node
     if game_info.free_strategical_nodes:
         return game_info.free_strategical_nodes_by_score_sorted[0]
 
+    print('add 2')
     my_strategical_node_my_neighbors_count = dict()
     for strategical_node in game_info.my_strategical_nodes:
         my_strategical_node_my_neighbors_count[strategical_node] = 0
@@ -284,24 +286,25 @@ def add_troop(game_info: GameInfo):
                 if neighbor in game_info.free_nodes:
                     return neighbor
     else:
+        print('add 3')
         for node in list_my_strategical_node_my_neighbors_count_sorted:
             neighbors = game_info.adj[node]
             for neighbor in neighbors:
                 if neighbor in game_info.free_nodes:
                     return neighbor
 
-    if not game_info.enemy_strategical_nodes_next_to_my_node:
-        for node in game_info.enemy_strategical_nodes_by_score_sorted:
-            neighbors = game_info.adj[node]
-            for neighbor in neighbors:
-                if neighbor in game_info.free_nodes:
-                    return neighbor
-
-    elif game_info.enemy_strategical_nodes_next_to_my_node:
-        neighbors = game_info.adj[game_info.enemy_strategical_nodes_next_to_my_node[0]]
-        for neighbor in neighbors:
-            if neighbor in game_info.free_nodes:
-                return neighbor
+    # if not game_info.enemy_strategical_nodes_next_to_my_node:
+    #     for node in game_info.enemy_strategical_nodes_by_score_sorted:
+    #         neighbors = game_info.adj[node]
+    #         for neighbor in neighbors:
+    #             if neighbor in game_info.free_nodes:
+    #                 return neighbor
+    #
+    # elif game_info.enemy_strategical_nodes_next_to_my_node:
+    #     neighbors = game_info.adj[game_info.enemy_strategical_nodes_next_to_my_node[0]]
+    #     for neighbor in neighbors:
+    #         if neighbor in game_info.free_nodes:
+    #             return neighbor
     return
 
 
@@ -310,12 +313,15 @@ def initial(game_info: GameInfo):
     # add troop
     if len(game_info.my_nodes) <= LIMIT_OF_NODE:
         node_id = add_troop(game_info)
-        game_info.put_one_troop(node_id, "add troop")
-        return
+        if node_id:
+            game_info.put_one_troop(node_id, "add troop")
+            return
 
     # reinforce
     node_id = reinforce(game_info)
-    game_info.put_one_troop(node_id, "reinforce")
+    if node_id:
+        game_info.put_one_troop(node_id, "reinforce")
+        return
     return
 
 
@@ -330,9 +336,10 @@ def initializer(game: Game):
     # return
     try:
         initial(game_info)
+        game.next_state()
         return
     except:
-        game_info.put_one_troop(random.choice(game_info.free_nodes), "except initial node")
+        game.next_state()
         return
 
 
@@ -495,7 +502,8 @@ def turn(game):
     try:
         reinforce_faze2(game, game_info)
         game.next_state()
-    except:
+    except Exception as e:
+        print(e)
         game.next_state()
     print("reinforce_ finish")
 
