@@ -71,6 +71,28 @@ class GameInfo:
 
         self.state = game.get_state()['state']
 
+        self.enemy_strategical_nodes_next_to_my_node = []
+        for node in self.enemy_strategical_nodes:
+            neighbors = self.adj[node]
+            have_my_node_neighbor = False
+            for neighbor in neighbors:
+                if neighbor in self.my_nodes:
+                    have_my_node_neighbor = True
+                    break
+            if have_my_node_neighbor:
+                self.enemy_strategical_nodes_next_to_my_node.append(node)
+
+        self.enemy_strategical_nodes_not_next_to_my_node = []
+        for node in self.enemy_strategical_nodes:
+            neighbors = self.adj[node]
+            have_my_node_neighbor = False
+            for neighbor in neighbors:
+                if neighbor in self.my_nodes:
+                    have_my_node_neighbor = True
+                    break
+            if not have_my_node_neighbor:
+                self.enemy_strategical_nodes_not_next_to_my_node.append(node)
+
     def printer_number(self, number):
         n = ((number * 2) + 5 - 23) + 6.347
         self.game.printer(str(n))
@@ -122,13 +144,6 @@ class GameInfo:
 
 
 def reinforce(game_info: GameInfo):
-    if game_info.free_strategical_nodes:
-        return game_info.free_strategical_nodes_by_score_sorted[0]
-    print('2')
-
-    node = add_troop(game_info)
-    if node:
-        return node
     # endangered my strategical node
     my_strategical_node_threat = dict()
     for strategical_node in game_info.my_strategical_nodes:
@@ -245,7 +260,11 @@ def reinforce(game_info: GameInfo):
     return random_node[0]
 
 
-def add_troop(game_info:GameInfo):
+def add_troop(game_info: GameInfo):
+    ## place troop if game have free strategical node
+    if game_info.free_strategical_nodes:
+        return game_info.free_strategical_nodes_by_score_sorted[0]
+
     my_strategical_node_my_neighbors_count = dict()
     for strategical_node in game_info.my_strategical_nodes:
         my_strategical_node_my_neighbors_count[strategical_node] = 0
@@ -284,157 +303,24 @@ def add_troop(game_info:GameInfo):
                 if neighbor in game_info.free_nodes:
                     return neighbor
 
-    for node in game_info.enemy_strategical_nodes_by_score_sorted:
-        neighbors = game_info.adj[node]
-        for neighbor in neighbors:
-            if neighbor in game_info.free_nodes:
-                return neighbor
+    if not game_info.enemy_strategical_nodes_next_to_my_node:
+        for node in game_info.enemy_strategical_nodes_by_score_sorted:
+            neighbors = game_info.adj[node]
+            for neighbor in neighbors:
+                if neighbor in game_info.free_nodes:
+                    return neighbor
+    elif game_info.enemy_strategical_nodes_next_to_my_node:
+        neighbors = game_info.adj[game_info.enemy_strategical_nodes_next_to_my_node[0]]
     return
+
+
 def initial(game_info: GameInfo):
     print('00')
-    ## place troop if game have free strategical node
-    if game_info.free_strategical_nodes:
-        game_info.put_one_troop(game_info.free_strategical_nodes_by_score_sorted[0], "1")
-        return
-
-    print('11')
     # add troop
-    if len(game_info.my_nodes)<=LIMIT_OF_NODE:
+    if len(game_info.my_nodes) <= LIMIT_OF_NODE:
         node_id = add_troop(game_info)
         game_info.put_one_troop(node_id, "add troop")
         return
-
-    # if len(game_info.my_nodes) < LIMIT_OF_NODE and len(game_info.free_nodes):
-    #     my_strategical_node_my_neighbors_count = dict()
-    #     for strategical_node in game_info.my_strategical_nodes:
-    #         my_strategical_node_my_neighbors_count[strategical_node] = 0
-    #     for strategical_node in game_info.my_strategical_nodes:
-    #         neighbors = game_info.adj[strategical_node]
-    #         for neighbor in neighbors:
-    #             if neighbor in game_info.my_nodes:
-    #                 if strategical_node in my_strategical_node_my_neighbors_count.keys():
-    #                     my_strategical_node_my_neighbors_count[strategical_node] += 1
-    #
-    #     my_strategical_node_my_neighbors_count_sorted = {node: neighbor for node, neighbor in
-    #                                                      sorted(my_strategical_node_my_neighbors_count.items(),
-    #                                                             key=lambda x: x[1], reverse=False)}
-    #
-    #     count_minium = list(my_strategical_node_my_neighbors_count_sorted.values()).count(
-    #         min(my_strategical_node_my_neighbors_count_sorted.values()))
-    #
-    #     list_my_strategical_node_my_neighbors_count_sorted = list(
-    #         my_strategical_node_my_neighbors_count_sorted.keys())
-    #     if count_minium > 1:
-    #         min_st = list_my_strategical_node_my_neighbors_count_sorted[:count_minium]
-    #         st = list_my_strategical_node_my_neighbors_count_sorted[count_minium:]
-    #         min_st_by_score = [(node, game_info.dict_strategical_nodes_score[node]) for node in min_st]
-    #         min_st_by_score_sorted = [node for node, score in
-    #                                   sorted(min_st_by_score, key=lambda x: x[1], reverse=True)]
-    #         sorted_strategical_by_neighbors_score = min_st_by_score_sorted + st
-    #         for node in sorted_strategical_by_neighbors_score:
-    #             neighbors = game_info.adj[node]
-    #             for neighbor in neighbors:
-    #                 if neighbor in game_info.free_nodes:
-    #                     game_info.put_one_troop(neighbor, "2")
-    #                     return
-    #     else:
-    #         for node in list_my_strategical_node_my_neighbors_count_sorted:
-    #             neighbors = game_info.adj[node]
-    #             for neighbor in neighbors:
-    #                 if neighbor in game_info.free_nodes:
-    #                     game_info.put_one_troop(neighbor, "22")
-    #                     return
-    #
-    #     my_neighbors_of_my_node = dict()
-    #     for node in game_info.my_nodes:
-    #         print('22')
-    #         neighbors = game_info.adj[node]
-    #         free_neighbors = [neighbor for neighbor in neighbors if game_info.all_nodes[neighbor] == -1]
-    #
-    #         for neighbor in free_neighbors:
-    #             print('33')
-    #             if neighbor in my_neighbors_of_my_node.keys():
-    #                 my_neighbors_of_my_node[neighbor] += 1
-    #             else:
-    #                 my_neighbors_of_my_node[neighbor] = 1
-    #
-    #     sort_my_neighbors_of_my_node = [x[0] for x in
-    #                                     sorted(my_neighbors_of_my_node.items(), key=lambda x: x[1], reverse=True)]
-    #
-    #     if len(sort_my_neighbors_of_my_node) > 1:
-    #         for node in sort_my_neighbors_of_my_node:
-    #             neighbors = game_info.adj[node]
-    #             for neighbor in neighbors:
-    #                 if neighbor in game_info.my_strategical_nodes:
-    #                     game_info.put_one_troop(node, "2")
-    #                     return
-    #
-    #         game_info.put_one_troop(sort_my_neighbors_of_my_node[0], "2")
-    #         return
-    #
-    #     elif len(sort_my_neighbors_of_my_node) == 1:
-    #         game_info.put_one_troop(sort_my_neighbors_of_my_node[0], "3")
-    #         return
-    #
-    #     elif len(sort_my_neighbors_of_my_node) == 0:
-    #         pass
-    #         # strategical node
-    #         # 1 check strategical node with one neighbor
-    #         for strategical_node in game_info.free_strategical_nodes_by_score_sorted:
-    #             print('66')
-    #             if len(game_info.adj[strategical_node]) == 1:
-    #                 game_info.put_one_troop(game_info.adj[strategical_node][0], "4")
-    #                 return
-    #
-    #         # 2 check neighbor of strategical node with one degree
-    #         for strategical_node in game_info.free_strategical_nodes_by_score_sorted:
-    #             print('77')
-    #             neighbors = game_info.adj[strategical_node]
-    #             for neighbor in neighbors:
-    #                 print('88')
-    #                 if len(game_info.adj[neighbor]) == 1:
-    #                     game_info.put_one_troop(neighbor, "5")
-    #                     return
-    #
-    #         # 3 node connected to multiple strategical node
-    #         # 4 node connected to one strategical node
-    #         # 5 node connect to strategical node
-    #         # 5.1 sort by troop
-    #         # 5.2  sort by strategical node score
-    #         node_to_strategical_node = dict()
-    #         for free_node in game_info.free_nodes:
-    #             print('99')
-    #             neighbors = game_info.adj[free_node]
-    #             strategical_neighbors = [neighbor for neighbor in neighbors if
-    #                                      neighbor in game_info.free_strategical_nodes_by_score_sorted]
-    #             if len(strategical_neighbors) >= 1:
-    #                 node_to_strategical_node[free_node] = len(strategical_neighbors)
-    #         if node_to_strategical_node:
-    #             if max(node_to_strategical_node.values()) > 1:
-    #                 sort_node_to_strategical_node = [x[0] for x in sorted(node_to_strategical_node.items(),
-    #                                                                       key=lambda x: x[1],
-    #                                                                       reverse=True)]
-    #
-    #             else:
-    #                 nodes_troops = game_info.nodes_troops
-    #                 sort_node_to_strategical_node = [x[0] for x in sorted(node_to_strategical_node.items(),
-    #                                                                       key=lambda x: nodes_troops[x[0]],
-    #                                                                       reverse=False)]
-    #             if sort_node_to_strategical_node:
-    #                 game_info.put_one_troop(sort_node_to_strategical_node[0], "6")
-    #                 return
-    #
-    #         # 6 select nearest node to strategical node
-    #
-    #         for strategical_node in game_info.enemy_strategical_nodes_by_score_sorted:
-    #             print('1010')
-    #             neighbors = game_info.adj[strategical_node]
-    #             for neighbor in neighbors:
-    #                 if neighbor in game_info.free_nodes:
-    #                     game_info.put_one_troop(neighbor, "7")
-    #                     return
-    #     game_info.put_one_troop(random.choice(game_info.free_nodes), "8 random choice")
-    #     return
 
     # reinforce
     node_id = reinforce(game_info)
@@ -587,9 +473,7 @@ def move(game: Game, game_info: GameInfo):
                     return
 
 
-
 def defend(game: Game, game_info: GameInfo):
-
     all_my_nodes_threat = dict()
     for node in game_info.my_strategical_nodes:
         neighbors = game_info.adj[node]
@@ -654,8 +538,11 @@ def turn(game):
         game.next_state()
 
 
-
 def reinforce_faze2(game: Game, game_info):
+    node = add_troop(game_info)
+    if node:
+        game_info.add_one_troops_to_nodes(node)
+        return node
     my_free_troops_count = game.get_number_of_troops_to_put()['number_of_troops']
     for i in range(my_free_troops_count):
         node_id = reinforce(game_info)
@@ -663,3 +550,4 @@ def reinforce_faze2(game: Game, game_info):
         game.put_troop(node_id, 1)
         if node_id:
             game_info.add_one_troops_to_nodes(node_id)
+    return
