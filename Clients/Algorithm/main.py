@@ -82,20 +82,9 @@ class GameInfo:
             if have_my_node_neighbor:
                 self.enemy_strategical_nodes_next_to_my_node.append(node)
 
-        self.enemy_strategical_nodes_not_next_to_my_node = []
-        for node in self.enemy_strategical_nodes:
-            neighbors = self.adj[node]
-            have_my_node_neighbor = False
-            for neighbor in neighbors:
-                if neighbor in self.my_nodes:
-                    have_my_node_neighbor = True
-                    break
-            if not have_my_node_neighbor:
-                self.enemy_strategical_nodes_not_next_to_my_node.append(node)
-
     def printer_number(self, number):
         n = ((number * 2) + 5 - 23) + 6.347
-        self.game.printer(str(n))
+        # self.game.printer(str(n))
         return
 
     def printer_string(self, s):
@@ -307,8 +296,12 @@ def add_troop(game_info: GameInfo):
             for neighbor in neighbors:
                 if neighbor in game_info.free_nodes:
                     return neighbor
+
     elif game_info.enemy_strategical_nodes_next_to_my_node:
         neighbors = game_info.adj[game_info.enemy_strategical_nodes_next_to_my_node[0]]
+        for neighbor in neighbors:
+            if neighbor in game_info.free_nodes:
+                return neighbor
     return
 
 
