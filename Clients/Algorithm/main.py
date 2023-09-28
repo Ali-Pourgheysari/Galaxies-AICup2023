@@ -67,6 +67,7 @@ class GameInfo:
 
         self.my_nodes = [node for node, owner in self.all_nodes.items() if owner == self.my_id]
 
+        self.fort_troops = {int(key): value for key, value in game.get_number_of_fort_troops().items()}
         self.nodes_troops = {int(key): value for key, value in game.get_number_of_troops().items()}
 
         self.state = game.get_state()['state']
@@ -242,8 +243,10 @@ def reinforce(game_info: GameInfo):
             # game_info.printer_string("r4")
             return node
 
-    my_node_by_troops = [node[0] for node in sorted([(node, troop) for node, troop in game_info.nodes_troops if node in game_info.my_nodes],
-                               key=lambda x: x[1], reverse=False)]
+    my_node_by_troops = [node[0] for node in
+                         sorted([(node, troop) for node, troop in game_info.nodes_troops.items() if
+                                 node in game_info.my_nodes],
+                                key=lambda x: x[1], reverse=False)]
     return my_node_by_troops[0]
 
 
@@ -306,8 +309,6 @@ def add_troop(game_info: GameInfo):
     #         if neighbor in game_info.free_nodes:
     #             return neighbor
 
-    LIMIT_OF_NODE = len(game_info.my_nodes) - 1
-
     return None
 
 
@@ -352,21 +353,22 @@ def get_my_troops_count_neighbours_of_enemy(game_info, node):
     for neighbor in neighbors:
         troop = game_info.nodes_troops[neighbor]
         if neighbor in game_info.my_nodes:
-            if troop > 1:
+            if troop > 3:
                 troops_count += game_info.nodes_troops[neighbor]
     return troops_count
 
 
 def can_attack(game_info, enemy_node):
-    return get_my_troops_count_neighbours_of_enemy(game_info, enemy_node) > game_info.nodes_troops[enemy_node]
+    return get_my_troops_count_neighbours_of_enemy(game_info, enemy_node) > (
+                game_info.nodes_troops[enemy_node] + game_info.fort_troops[enemy_node])
 
 
-def get_fraction():
-    return 0.1
+def get_fraction(enemy_node_troops_count):
+    return 2/enemy_node_troops_count
 
 
 def get_move_fraction():
-    return 0.2
+    return 0.8
 
 
 def attack(game: Game, game_info):
@@ -397,13 +399,14 @@ def attack(game: Game, game_info):
             neighbors = game_info.adj[enemy_strategical_node]
             neighbors = [x for x in neighbors if x in game_info.my_nodes]
             neighbors.sort(key=lambda x: game_info.nodes_troops[x], reverse=True)
-            response = game.attack(neighbors[0], enemy_strategical_node, get_fraction(), get_move_fraction())
+            response = game.attack(neighbors[0], enemy_strategical_node, get_fraction(game_info.nodes_troops[enemy_strategical_node]), get_move_fraction())
             attack_flag = True
             if response and response["won"]:
                 return response
             elif response and "message" in response.keys() and response["message"] == "attack successful":
                 game_info.nodes_troops = {int(key): value for key, value in game.get_number_of_troops().items()}
-
+            elif response and "message" in response.keys() and response["message"] != "attack successful":
+                break
         if attack_flag:
             return response
 
@@ -423,13 +426,15 @@ def attack(game: Game, game_info):
             neighbors = game_info.adj[enemy_simple_node]
             neighbors = [x for x in neighbors if x in game_info.my_nodes]
             neighbors.sort(key=lambda x: game_info.nodes_troops[x], reverse=True)
-            response = game.attack(neighbors[0], enemy_simple_node, get_fraction(), get_move_fraction())
+            response = game.attack(neighbors[0], enemy_simple_node, get_fraction(game_info.nodes_troops[enemy_strategical_node]), get_move_fraction())
             print(response)
             if response and response["won"]:
                 print(response)
                 return response
             elif response and "message" in response.keys() and response["message"] == "attack successful":
                 game_info.nodes_troops = {int(key): value for key, value in game.get_number_of_troops().items()}
+            elif response and "message" in response.keys() and response["message"] != "attack successful":
+                break
             attack_flag = True
         if attack_flag:
             return response
@@ -514,7 +519,7 @@ def turn(game):
     print("attack start")
     game_info = GameInfo(game)
     try:
-        for i in range(3):
+        for i in range(5):
             print("attack start2")
             attack(game, game_info)
             game_info = GameInfo(game)
@@ -553,3 +558,12 @@ def reinforce_faze2(game: Game, game_info):
         if node_id:
             game_info.add_one_troops_to_nodes(node_id)
     return
+
+
+def weakest_path_to_enemy_strategical_node(game_info: GameInfo, node, path_troops=dict()):
+    if node in game_info.free_nodes or node in game_info.my_nodes:
+        return node
+
+    neighbors = game_info.adj[node]
+    for neighbor in neighbors:
+        weakest_path_to_enemy_strategical_node(game_info, neighbor)
