@@ -4,7 +4,7 @@ from src.game import Game
 
 flag = False
 
-LIMIT_OF_NODE = 11
+LIMIT_OF_NODE = 8
 DEFEND = False
 
 ALL_MY_TROOPS_COUNT = 35
@@ -88,7 +88,7 @@ class GameInfo:
         return
 
     def printer_string(self, s):
-        self.game.printer(f"hehe : {s}")
+        self.game.printer(s)
         return
 
     def get_reachable(self, node):
@@ -155,7 +155,7 @@ def reinforce(game_info: GameInfo):
     for node in sort_my_strategical_node_threat:
         if game_info.can_put_troops_limitation(game_info.nodes_troops[node], game_info.STRATEGICAL_NODE) and \
                 my_strategical_node_threat[node] >= 0:
-            game_info.printer_string("r1")
+            # game_info.printer_string("r1")
             return node
 
     print('4')
@@ -186,7 +186,7 @@ def reinforce(game_info: GameInfo):
     print('6')
     for node in sort_my_node_neighbors_to_my_strategical_node_threat:
         if game_info.can_put_troops_limitation(game_info.nodes_troops[node], game_info.SIMPLE_NODE):
-            game_info.printer_string("r2")
+            # game_info.printer_string("r2")
             return node
     print('7')
     my_node_neighbors_to_enemy_strategical_node = set()
@@ -214,7 +214,7 @@ def reinforce(game_info: GameInfo):
         for node in sort_my_node_attack_to_enemy_troops:
             if game_info.can_put_troops_limitation(game_info.nodes_troops[node], game_info.SIMPLE_NODE):
                 if game_info.nodes_troops[node] <= my_node_attack_to_enemy_troops[node]:
-                    game_info.printer_string("r3")
+                    # game_info.printer_string("r3")
                     return node
     print('9')
     # reinforce without limitation
@@ -239,7 +239,7 @@ def reinforce(game_info: GameInfo):
     for node in sort_all_my_nodes_threat:
         print("salam")
         if all_my_nodes_threat[node] >= 0:
-            game_info.printer_string("r4")
+            # game_info.printer_string("r4")
             return node
 
     my_node_by_troops = [node[0] for node in sorted([(node, troop) for node, troop in game_info.nodes_troops if node in game_info.my_nodes],
@@ -305,7 +305,10 @@ def add_troop(game_info: GameInfo):
     #     for neighbor in neighbors:
     #         if neighbor in game_info.free_nodes:
     #             return neighbor
-    return
+
+    LIMIT_OF_NODE = len(game_info.my_nodes) - 1
+
+    return None
 
 
 def initial(game_info: GameInfo):
@@ -319,6 +322,7 @@ def initial(game_info: GameInfo):
 
     # reinforce
     node_id = reinforce(game_info)
+    print(node_id)
     if node_id:
         game_info.put_one_troop(node_id, "reinforce")
         return
@@ -336,7 +340,6 @@ def initializer(game: Game):
     # return
     try:
         initial(game_info)
-        game.next_state()
         return
     except:
         game.next_state()
@@ -363,7 +366,7 @@ def get_fraction():
 
 
 def get_move_fraction():
-    return 0.5
+    return 0.2
 
 
 def attack(game: Game, game_info):
