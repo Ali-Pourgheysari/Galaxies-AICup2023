@@ -354,6 +354,10 @@ def initializer(game: Game):
     # initial(game_info)
     # return
     try:
+        if game_info.free_strategical_nodes:
+            game_info.put_one_troop(game_info.free_strategical_nodes_by_score_sorted[0])
+            game.next_state()
+            return
         initial(game_info, game)
         return
     except:
@@ -521,11 +525,13 @@ def defend(game: Game, game_info: GameInfo):
 
     if all_my_nodes_threat and all_my_nodes_threat[sort_all_my_nodes_threat[0]] > 0:
         game.fort(sort_all_my_nodes_threat[0], game_info.nodes_troops[sort_all_my_nodes_threat[0]] - 1)
+        return
 
     game_info.my_strategical_nodes.sort(key=lambda x: game_info.nodes_troops[x], reverse=True)
     for node in game_info.my_strategical_nodes:
         if game_info.nodes_troops[node] >= LIMIT_OF_DEFEND_FOR_STRATEGICAL_NODE:
             game.fort(node, game_info.nodes_troops[node] - 1)
+            return
 
 
 def turn(game):
