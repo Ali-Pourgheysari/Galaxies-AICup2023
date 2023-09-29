@@ -14,6 +14,8 @@ STATE_DEFENCIVE_TROOPS = 4
 
 COUNT_OF_ADD_TROOPS_PHASE_2 = 0
 
+LIMIT_OF_DEFEND_FOR_STRATEGICAL_NODE = 15
+
 
 class Graph:
     def __init__(self, adj):
@@ -109,7 +111,7 @@ class GameInfo:
     def add_one_troops_to_nodes(self, node_id):
         self.nodes_troops[node_id] += 1
 
-    def add_one_troops_to_free_nodes(self,node_id):
+    def add_one_troops_to_free_nodes(self, node_id):
         self.nodes_troops[node_id] += 1
         self.my_nodes.append(node_id)
         self.free_nodes.remove(node_id)
@@ -138,7 +140,7 @@ class GameInfo:
         return "my id: " + str(self.my_id)
 
 
-def reinforce(game_info: GameInfo):
+def reinforce(game_info: GameInfo, my_troop_count):
     # endangered my strategical node
     my_strategical_node_threat = dict()
     for strategical_node in game_info.my_strategical_nodes:
@@ -219,7 +221,8 @@ def reinforce(game_info: GameInfo):
                                                                     reverse=False)]
         for node in sort_my_node_attack_to_enemy_troops:
             if game_info.can_put_troops_limitation(game_info.nodes_troops[node], game_info.SIMPLE_NODE):
-                if game_info.nodes_troops[node] <= my_node_attack_to_enemy_troops[node]:
+                if game_info.nodes_troops[node] <= my_node_attack_to_enemy_troops[node] and game_info.nodes_troops[
+                    node] + my_troop_count >= my_node_attack_to_enemy_troops[node]:
                     # game_info.printer_string("r3")
                     return node
     print('9')
@@ -244,7 +247,7 @@ def reinforce(game_info: GameInfo):
     # check less than limitation of troops in my strategical node
     for node in sort_all_my_nodes_threat:
         print("salam")
-        if all_my_nodes_threat[node] >= 0:
+        if all_my_nodes_threat[node] >= 0 and all_my_nodes_threat[node] - my_troop_count <= 0:
             # game_info.printer_string("r4")
             return node
 
@@ -322,7 +325,7 @@ def add_troop(game_info: GameInfo):
     return None
 
 
-def initial(game_info: GameInfo):
+def initial(game_info: GameInfo, game: Game):
     print('00')
     # add troop
     if len(game_info.my_nodes) <= LIMIT_OF_NODE:
@@ -332,7 +335,8 @@ def initial(game_info: GameInfo):
             return
 
     # reinforce
-    node_id = reinforce(game_info)
+    my_troop_count = game.get_number_of_troops_to_put()["number_of_troops"]
+    node_id = reinforce(game_info, my_troop_count)
     print(node_id)
     if node_id:
         game_info.put_one_troop(node_id, "reinforce")
@@ -350,7 +354,7 @@ def initializer(game: Game):
     # initial(game_info)
     # return
     try:
-        initial(game_info)
+        initial(game_info, game)
         return
     except:
         game.next_state()
@@ -518,6 +522,11 @@ def defend(game: Game, game_info: GameInfo):
     if all_my_nodes_threat and all_my_nodes_threat[sort_all_my_nodes_threat[0]] > 0:
         game.fort(sort_all_my_nodes_threat[0], game_info.nodes_troops[sort_all_my_nodes_threat[0]] - 1)
 
+    game_info.my_strategical_nodes.sort(key=lambda x: game_info.nodes_troops[x], reverse=True)
+    for node in game_info.my_strategical_nodes:
+        if game_info.nodes_troops[node] >= LIMIT_OF_DEFEND_FOR_STRATEGICAL_NODE:
+            game.fort(node, game_info.nodes_troops[node] - 1)
+
 
 def turn(game):
     global DEFEND
@@ -581,8 +590,6 @@ def reinforce_faze2(game: Game, game_info):
                 game.put_troop(node, 1)
                 my_free_troops_count -= 1
                 game_info.add_one_troops_to_free_nodes(node)
-            else:
-                break
 
     node = add_troop(game_info)
     if node:
@@ -592,14 +599,12 @@ def reinforce_faze2(game: Game, game_info):
         return node
     range_troop = my_free_troops_count
     for i in range(range_troop):
-        node_id = reinforce(game_info)
+        node_id = reinforce(game_info, my_free_troops_count)
         print("node count trpps", node_id)
         if node_id:
             game.put_troop(node_id, 1)
             my_free_troops_count -= 1
             game_info.add_one_troops_to_nodes(node_id)
-        else:
-            break
 
     if my_free_troops_count:
         my_node_and_free_node = game_info.my_nodes + game_info.free_nodes
