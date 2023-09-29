@@ -109,6 +109,11 @@ class GameInfo:
     def add_one_troops_to_nodes(self, node_id):
         self.nodes_troops[node_id] += 1
 
+    def add_one_troops_to_free_nodes(self,node_id):
+        self.nodes_troops[node_id] += 1
+        self.my_nodes.append(node_id)
+        self.free_nodes.remove(node_id)
+
     def __str__(self):
         self.printer_number(LIMIT_OF_NODE)
         print("node limit", LIMIT_OF_NODE)
@@ -246,8 +251,13 @@ def reinforce(game_info: GameInfo):
     my_node_by_troops = [node[0] for node in
                          sorted([(node, troop) for node, troop in game_info.nodes_troops.items() if
                                  node in game_info.my_nodes],
-                                key=lambda x: x[1], reverse=False)]
-    return my_node_by_troops[0]
+                                key=lambda x: x[1], reverse=False) if node[1] < 2]
+    print('test for nodes troop', game_info.nodes_troops)
+
+    if my_node_by_troops:
+        return my_node_by_troops[0]
+
+    return None
 
 
 def add_troop(game_info: GameInfo):
@@ -295,7 +305,6 @@ def add_troop(game_info: GameInfo):
                 for neighbor in neighbors:
                     if neighbor in game_info.free_nodes:
                         return neighbor
-
 
     # if not game_info.enemy_strategical_nodes_next_to_my_node:
     #     for node in game_info.enemy_strategical_nodes_by_score_sorted:
@@ -361,14 +370,14 @@ def get_my_troops_count_neighbours_of_enemy(game_info, node):
 
 def can_attack(game_info, enemy_node):
     return get_my_troops_count_neighbours_of_enemy(game_info, enemy_node) > (
-                game_info.nodes_troops[enemy_node] + game_info.fort_troops[enemy_node])
+            game_info.nodes_troops[enemy_node] + game_info.fort_troops[enemy_node])
 
 
 def get_fraction(enemy_node_troops_count):
-    return 2/enemy_node_troops_count
+    return 2 / enemy_node_troops_count
 
 
-def get_move_fraction(game_info:GameInfo, my_attacker_node):
+def get_move_fraction(game_info: GameInfo, my_attacker_node):
     if my_attacker_node in game_info.strategical_nodes:
         return 0.01
     else:
@@ -403,7 +412,9 @@ def attack(game: Game, game_info):
             neighbors = game_info.adj[enemy_strategical_node]
             neighbors = [x for x in neighbors if x in game_info.my_nodes]
             neighbors.sort(key=lambda x: game_info.nodes_troops[x], reverse=True)
-            response = game.attack(neighbors[0], enemy_strategical_node, get_fraction(game_info.nodes_troops[enemy_strategical_node]), get_move_fraction(game_info,neighbors[0]))
+            response = game.attack(neighbors[0], enemy_strategical_node,
+                                   get_fraction(game_info.nodes_troops[enemy_strategical_node]),
+                                   get_move_fraction(game_info, neighbors[0]))
             attack_flag = True
             if response and response["won"]:
                 return response
@@ -430,7 +441,9 @@ def attack(game: Game, game_info):
             neighbors = game_info.adj[enemy_simple_node]
             neighbors = [x for x in neighbors if x in game_info.my_nodes]
             neighbors.sort(key=lambda x: game_info.nodes_troops[x], reverse=True)
-            response = game.attack(neighbors[0], enemy_simple_node, get_fraction(game_info.nodes_troops[enemy_simple_node]), get_move_fraction(game_info,neighbors[0]))
+            response = game.attack(neighbors[0], enemy_simple_node,
+                                   get_fraction(game_info.nodes_troops[enemy_simple_node]),
+                                   get_move_fraction(game_info, neighbors[0]))
             print(response)
             if response and response["won"]:
                 print(response)
@@ -478,7 +491,8 @@ def move(game: Game, game_info: GameInfo):
                 if abs(all_my_nodes_threat[node_sos]) > all_my_nodes_threat[node] and all_my_nodes_threat[node] > 0:
                     game.move_troop(node_sos, node, abs(all_my_nodes_threat[node]))
                     return
-                elif abs(all_my_nodes_threat[node_sos]) < all_my_nodes_threat[node] and all_my_nodes_threat[node_sos] > 0:
+                elif abs(all_my_nodes_threat[node_sos]) < all_my_nodes_threat[node] and all_my_nodes_threat[
+                    node_sos] > 0:
                     game.move_troop(node_sos, node, abs(all_my_nodes_threat[node_sos]))
                     return
 
@@ -515,7 +529,7 @@ def turn(game):
         reinforce_faze2(game, game_info)
         game.next_state()
     except Exception as e:
-        game_info.printer_string('exept reinf '+str(e) + str(e.with_traceback(None)))
+        game_info.printer_string('exept reinf ' + str(e) + str(e.with_traceback(None)))
         game.next_state()
     print("reinforce_ finish")
 
@@ -526,12 +540,13 @@ def turn(game):
         while True:
             print("attack start2")
             response = attack(game, game_info)
-            if not response or (response and "message" in response.keys() and response["message"] != "attack successful"):
+            if not response or (
+                    response and "message" in response.keys() and response["message"] != "attack successful"):
                 break
             game_info = GameInfo(game)
         game.next_state()
     except Exception as e:
-        game_info.printer_string('exept attack '+str(e)+ str(e.with_traceback(None)))
+        game_info.printer_string('exept attack ' + str(e) + str(e.with_traceback(None)))
         game.next_state()
     print("attack finish")
 
@@ -540,7 +555,7 @@ def turn(game):
         move(game, game_info)
         game.next_state()
     except Exception as e:
-        game_info.printer_string('exept move'+str(e)+ str(e.with_traceback(None)))
+        game_info.printer_string('exept move' + str(e) + str(e.with_traceback(None)))
         game.next_state()
 
     try:
@@ -550,7 +565,7 @@ def turn(game):
             DEFEND = True
         game.next_state()
     except Exception as e:
-        game_info.printer_string('exept defend'+str(e)+ str(e.with_traceback(None)))
+        game_info.printer_string('exept defend' + str(e) + str(e.with_traceback(None)))
         game.next_state()
 
 
@@ -565,7 +580,7 @@ def reinforce_faze2(game: Game, game_info):
             if node:
                 game.put_troop(node, 1)
                 my_free_troops_count -= 1
-                game_info.add_one_troops_to_nodes(node)
+                game_info.add_one_troops_to_free_nodes(node)
             else:
                 break
 
@@ -573,7 +588,7 @@ def reinforce_faze2(game: Game, game_info):
     if node:
         game.put_troop(node, 1)
         my_free_troops_count -= 1
-        game_info.add_one_troops_to_nodes(node)
+        game_info.add_one_troops_to_free_nodes(node)
         return node
     range_troop = my_free_troops_count
     for i in range(range_troop):
@@ -583,10 +598,28 @@ def reinforce_faze2(game: Game, game_info):
             game.put_troop(node_id, 1)
             my_free_troops_count -= 1
             game_info.add_one_troops_to_nodes(node_id)
-    return
+        else:
+            break
+
+    if my_free_troops_count:
+        my_node_and_free_node = game_info.my_nodes + game_info.free_nodes
+        my_node_neighbors_count = dict()
+        for node in my_node_and_free_node:
+            neighbors = game_info.adj[node]
+            for neighbor in neighbors:
+                if neighbor in game_info.enemy_nodes:
+                    if node in my_node_neighbors_count.keys():
+                        my_node_neighbors_count[node] += 1
+                    else:
+                        my_node_neighbors_count[node] = 1
+        sort_my_node_neighbors_count = [x[0] for x in sorted(my_node_neighbors_count.items(),
+                                                             key=lambda x: x[1],
+                                                             reverse=True)]
+        game.put_troop(sort_my_node_neighbors_count[0], my_free_troops_count)
+    return None
 
 
-def add_troop_phase_2(game_info:GameInfo, game: Game):
+def add_troop_phase_2(game_info: GameInfo, game: Game):
     owner = game.get_owners()
     free_nodes = {int(node): owner for node, owner in owner.items() if owner == -1}
     my_nodes = {int(node): owner for node, owner in owner.items() if owner == game_info.my_id}
