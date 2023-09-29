@@ -138,7 +138,7 @@ def reinforce(game_info: GameInfo):
     my_strategical_node_threat = dict()
     for strategical_node in game_info.my_strategical_nodes:
         neighbors = game_info.adj[strategical_node]
-        strategical_node_troop = game_info.nodes_troops[strategical_node]
+        strategical_node_troop = game_info.nodes_troops[strategical_node] + game_info.fort_troops[strategical_node]
         for neighbor in neighbors:
             if neighbor not in game_info.my_nodes:
                 enemy_nodes_troops = game_info.nodes_troops[neighbor]
